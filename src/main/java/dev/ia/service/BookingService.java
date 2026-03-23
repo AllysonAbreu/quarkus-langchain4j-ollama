@@ -3,6 +3,7 @@ package dev.ia.service;
 import dev.ia.domain.Booking;
 import dev.ia.domain.enums.BookingStatus;
 import dev.ia.domain.enums.Category;
+import dev.ia.security.SecurityContext;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.time.LocalDate;
@@ -29,13 +30,21 @@ public class BookingService {
         return Optional.ofNullable(bookings.get(bookingId));
     }
 
-    public Optional<Booking> cancelBooking(long bookingId, String customerLastName) {
+    public Optional<Booking> cancelBooking(long bookingId) {
+        String currentUser = SecurityContext.getCurrentUser();
         if (bookings.containsKey(bookingId)) {
             Booking booking = bookings.get(bookingId);
-            if (booking.customerName().endsWith(customerLastName)) {
-                Booking cancelledBooking = new Booking(booking.id(), booking.customerName(), booking.destination(),
-                        booking.startDate(), booking.endDate(), BookingStatus.CANCELLED, Category.ADVENTURE);
-                bookings.put(bookingId, cancelledBooking);
+            if (booking.customerName().equals(currentUser)) {
+                Booking cancelledBooking = new Booking(
+                        booking.id(),
+                        booking.customerName(),
+                        booking.destination(),
+                        booking.startDate(),
+                        booking.endDate(),
+                        BookingStatus.CANCELLED, // O novo status
+                        booking.category()
+                );
+                this.bookings.replace(bookingId, cancelledBooking);
                 return Optional.of(cancelledBooking);
             }
         }
